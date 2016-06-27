@@ -50,34 +50,38 @@ namespace Kentor.AuthServices.Owin
 
                 if (challenge != null)
                 {
-                    EntityId idp;
-                    string strIdp;
-                    if (challenge.Properties.Dictionary.TryGetValue("idp", out strIdp))
+                    var enabled = challenge.Properties.Dictionary.ContainsKey("SamlChallengeResult");
+                    if (enabled)
                     {
-                        idp = new EntityId(strIdp);
-                    }
-                    else
-                    {
-                        object objIdp = null;
-                        Context.Environment.TryGetValue("KentorAuthServices.idp", out objIdp);
-                        idp = objIdp as EntityId;
-                    }
-                    if (idp != null || !Options.IdentityProviders.IsEmpty)
-                    {
-                        var redirectUri = challenge.Properties.RedirectUri;
-                        // Don't serialize the RedirectUri twice.
-                        challenge.Properties.RedirectUri = null;
-
-                        var result = SignInCommand.Run(
-                            idp,
-                            redirectUri,
-                            await Context.ToHttpRequestData(Options.DataProtector.Unprotect),
-                            Options,
-                            challenge.Properties.Dictionary);
-
-                        if (!result.HandledResult)
+                        EntityId idp;
+                        string strIdp;
+                        if (challenge.Properties.Dictionary.TryGetValue("idp", out strIdp))
                         {
-                            result.Apply(Context, Options.DataProtector);
+                            idp = new EntityId(strIdp);
+                        }
+                        else
+                        {
+                            object objIdp = null;
+                            Context.Environment.TryGetValue("KentorAuthServices.idp", out objIdp);
+                            idp = objIdp as EntityId;
+                        }
+                        if (idp != null || !Options.IdentityProviders.IsEmpty)
+                        {
+                            var redirectUri = challenge.Properties.RedirectUri;
+                            // Don't serialize the RedirectUri twice.
+                            challenge.Properties.RedirectUri = null;
+
+                            var result = SignInCommand.Run(
+                                idp,
+                                redirectUri,
+                                await Context.ToHttpRequestData(Options.DataProtector.Unprotect),
+                                Options,
+                                challenge.Properties.Dictionary);
+
+                            if (!result.HandledResult)
+                            {
+                                result.Apply(Context, Options.DataProtector);
+                            }
                         }
                     }
                 }
